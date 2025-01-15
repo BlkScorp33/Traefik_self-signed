@@ -1,0 +1,38 @@
+---
+services:
+  traefik:
+    image: traefik:v3.3
+    container_name: traefik
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--entryPoints.web.address=:80"
+      - "--entryPoints.websecure.address=:443"
+      - "--entryPoints.websecure.tls=true"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8082:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/traefik.yml:ro
+      - ./certs:/certs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.$MY_DOMAIN`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls=true"
+  ## Basic Auth
+#      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$hashedpassword"
+#      - "traefik.http.routers.traefik.middlewares=auth"
+## Authentik
+#      - "traefik.http.routers.traefik.middlewares=authentik@file"
+     
+
+   networks:
+      - traefik_scorpion
+
+networks:
+  traefik_scorpion:
+    external: true
