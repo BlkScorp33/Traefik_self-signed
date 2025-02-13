@@ -1,38 +1,40 @@
----
 services:
   traefik:
-    image: traefik:v3.3
-    container_name: traefik
+    image: traefik:latest
+    container_name: traefik3
     command:
-      - "--api.insecure=true"
-      - "--api.dashboard=true"
-      - "--providers.docker=true"
-      - "--entryPoints.web.address=:80"
-      - "--entryPoints.websecure.address=:443"
-      - "--entryPoints.websecure.tls=true"
+      - "--configFile=/etc/traefik/traefik.yml"
     ports:
       - "80:80"
       - "443:443"
-      - "8082:8080"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./traefik.yml:/traefik.yml:ro
-      - ./certs:/certs
+      - "8080:8080" # Dashboard port
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.$MY_DOMAIN`)"
-      - "traefik.http.routers.traefik.entrypoints=websecure"
-      - "traefik.http.routers.traefik.tls=true"
-  ## Basic Auth
-#      - "traefik.http.middlewares.auth.basicauth.users=admin:$$apr1$$hashedpassword"
-#      - "traefik.http.routers.traefik.middlewares=auth"
-## Authentik
-#      - "traefik.http.routers.traefik.middlewares=authentik@file"
-     
-
-   networks:
-      - traefik_scorpion
+      ## DNS CHALLENGE
+      - "traefik.http.routers.test.tls.certresolver=myresolver"
+      - "traefik.http.routers.test.tls.domains[0].main=*.$MY_DOMAIN"
+      - "traefik.http.routers.test.tls.domains[0].sans=$MY_DOMAIN"
+      ## HTTP REDIRECT
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.redirect-https.rule=hostregexp(`{host:.+}`)"
+      - "traefik.http.routers.redirect-https.entrypoints=websecure"
+      - "traefik.http.routers.redirect-https.middlewares=redirect-to-https"
+      ## Dashboard
+      - "traefik.http.routers.test-dashboard.rule=Host(`traefik.$MY_DOMAIN`)"
+      - "traefik.http.routers.test-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.test-dashboard.service=api@internal"
+      - "traefik.http.routers.test-dashboard.tls.certresolver=myresolver"
+      ## Authentik
+      - "traefik.http.routers.test-dashboard.middlewares=authentik@file"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./traefik.toml:/etc/traefik/traefik.toml:ro"
+      - "./certs:/certs"
+      - "./dynamic:/dynamic:ro"
+    networks:
+      - web
 
 networks:
-  traefik_scorpion:
+  web:
+    driver: overlay
     external: true
