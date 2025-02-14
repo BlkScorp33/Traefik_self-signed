@@ -10,10 +10,6 @@ services:
       - "8080:8080" # Dashboard port
     labels:
       - "traefik.enable=true"
-      ## DNS CHALLENGE
-      - "traefik.http.routers.test.tls.certresolver=myresolver"
-      - "traefik.http.routers.test.tls.domains[0].main=*.$MY_DOMAIN"
-      - "traefik.http.routers.test.tls.domains[0].sans=$MY_DOMAIN"
       ## HTTP REDIRECT
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
       - "traefik.http.routers.redirect-https.rule=hostregexp(`{host:.+}`)"
